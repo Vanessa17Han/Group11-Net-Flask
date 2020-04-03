@@ -1,16 +1,30 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2 AS build-env
-WORKDIR /app
+from ubuntu:latest
 
-# Copy csproj and restore as distinct layers
-COPY *.csproj ./
+WORKDIR backend-svr
+
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    apt-get install -y wget && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
+
+RUN dpkg -i packages-microsoft-prod.deb
+
+RUN add-apt-repository universe
+
+RUN apt install apt-transport-https -y
+
+RUN apt-get update
+
+RUN apt install dotnet-sdk-3.0 -y
+
+COPY ./ ./
+
 RUN dotnet restore
 
-# Copy everything else and build
-COPY . ./
-RUN dotnet publish -c Release -o out
+RUN dotnet build
 
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/core/aspnet:2.2
-WORKDIR /app
-COPY --from=build-env /app/out .
-ENTRYPOINT ["dotnet", "AspNetCoreWebApplicationTest.dll"]
+EXPOSE 5000:5000
+
+CMD [ "dotnet", "run" ]
